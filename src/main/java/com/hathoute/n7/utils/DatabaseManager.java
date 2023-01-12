@@ -6,6 +6,7 @@ import java.beans.PropertyVetoException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
 import javax.sql.DataSource;
 
 public final class DatabaseManager {
@@ -46,7 +47,8 @@ public final class DatabaseManager {
   }
 
   public void insertData(final int metricId, final float value) throws SQLException {
-    final var insertQuery = "INSERT INTO gazshield.data (metric_id, value) VALUES (?, ?)";
+    final var insertQuery = "INSERT INTO %s.data (metric_id, value) VALUES (?, ?)"
+        .formatted(databaseName);
     try (final var connection = dataSource.getConnection();
         final var preparedStatement = connection.prepareStatement(insertQuery)) {
       preparedStatement.setInt(1, metricId);
@@ -55,17 +57,18 @@ public final class DatabaseManager {
     }
   }
 
-  public boolean metricExists(final int metricId) throws SQLException {
-    final var existsQuery = ("SELECT EXISTS(SELECT 1 FROM %s.metrics "
-                             + "WHERE id = ?)").formatted(databaseName);
+  public Optional<Integer> getMetricId(final String gazId) throws SQLException {
+    final var selectQuery = "SELECT id FROM %s.metric WHERE gazId = ?".formatted(databaseName);
     try (final var connection = dataSource.getConnection();
-        final var preparedStatement = connection.prepareStatement(existsQuery)) {
-      preparedStatement.setInt(1, metricId);
+        final var preparedStatement = connection.prepareStatement(selectQuery)) {
+      preparedStatement.setString(1, gazId);
       try (final var resultSet = preparedStatement.executeQuery()) {
-        resultSet.next();
-        return resultSet.getBoolean(1);
+        if (resultSet.next()) {
+          return Optional.of(resultSet.getInt("id"));
+        }
       }
     }
+    return Optional.empty();
   }
 
   public Collection<AlertOperation> metricOperations(final int metricId) throws SQLException {
@@ -93,6 +96,8 @@ public final class DatabaseManager {
     // our use-case is so simple we're fine with MyISAM.
     final var tableMetricsQuery = "CREATE TABLE IF NOT EXISTS %s.metrics (".formatted(databaseName)
                                   + "id INT NOT NULL AUTO_INCREMENT,"
+                                  + "name VARCHAR(255) NOT NULL,"
+                                  + "gazId VARCHAR(4) NOT NULL UNIQUE,"
                                   + "PRIMARY KEY (id)"
                                   + ");";
     final var tableDataQuery = "CREATE TABLE IF NOT EXISTS %s.data (".formatted(databaseName)

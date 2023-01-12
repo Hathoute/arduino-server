@@ -31,6 +31,7 @@ public class ServerListener {
     try (final var serverSocket = new ServerSocket(port)) {
       while (true) {
         final var socket = serverSocket.accept();
+        // Socket is not thread safe, but here it is manipulated by a single thread, so it's ok.
         startThread(socket);
       }
     }
@@ -51,12 +52,12 @@ public class ServerListener {
 
   static class ThreadRunner implements Runnable {
     private final Socket socket;
-    private final InputStreamReader requestInputStream;
+    private final InputStreamReader inputStreamReader;
     private final OutputStreamWriter outputStreamWriter;
 
     public ThreadRunner(final Socket socket) throws IOException {
       this.socket = socket;
-      requestInputStream = new InputStreamReader(socket.getInputStream());
+      inputStreamReader = new InputStreamReader(socket.getInputStream());
       outputStreamWriter = new OutputStreamWriter(socket.getOutputStream());
     }
 
@@ -69,13 +70,21 @@ public class ServerListener {
         logger.warn("Header mismatch for socket request", hme);
       } catch (final HandlerNotFoundException hnfe) {
         logger.warn("Handler not found for socket request", hnfe);
+      } finally {
+        try {
+          inputStreamReader.close();
+          outputStreamWriter.close();
+          socket.close();
+        } catch (final IOException e) {
+          logger.warn("Could not close socket related resources", e);
+        }
       }
     }
 
     private void checkHeader() throws HeaderMismatchException {
       final var header = new char[4];
       try {
-        requestInputStream.read(header, 0, 4);
+        inputStreamReader.read(header, 0, 4);
         if (!Arrays.equals(header, HEADER)) {
           throw new HeaderMismatchException(
               "Expected " + Arrays.toString(HEADER) + " but got "
@@ -89,13 +98,13 @@ public class ServerListener {
     private void executeHandler() throws HandlerNotFoundException {
       final int handlerId;
       try {
-        handlerId = requestInputStream.read();
+        handlerId = inputStreamReader.read();
       } catch (final IOException e) {
         throw new HandlerNotFoundException("Could not read handler id");
       }
 
       final var requestHandler = RequestHandlerFactory.createFromId(handlerId);
-      requestHandler.handle(socket);
+      requestHandler.handle(inputStreamReader, outputStreamWriter);
     }
   }
 }

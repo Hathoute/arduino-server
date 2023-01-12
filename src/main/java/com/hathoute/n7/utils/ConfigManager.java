@@ -3,8 +3,11 @@ import static java.util.Objects.isNull;
 
 import java.io.IOException;
 import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ConfigManager {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConfigManager.class);
 
   private static ConfigManager instance;
 
@@ -31,12 +34,23 @@ public final class ConfigManager {
 
   public String getString(final String property) {
     final var envValue = System.getenv(toEnvProperty(property));
-    final var value = isNull(envValue) ? properties.getProperty(property) : envValue;
+    if (!isNull(envValue)) {
+      LOGGER.trace("Using environment variable {} for property {}", envValue, property);
+      return envValue;
+    }
+
+    final var value = properties.getProperty(property);
     if (isNull(value)) {
+      LOGGER.trace("Property {} not found", property);
       throw new IllegalStateException("Property " + property + " not found");
     }
 
+    LOGGER.trace("Property {} = {}", property, value);
     return value;
+  }
+
+  public int getInt(final String property) {
+    return Integer.parseInt(getString(property));
   }
 
   private String toEnvProperty(final String property) {

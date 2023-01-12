@@ -7,9 +7,11 @@ public final class RequestHandlerFactory {
   }
 
   public static RequestHandler createFromId(final int identifier) throws HandlerNotFoundException {
-    switch (identifier) {
-      default:
-        throw new HandlerNotFoundException("No handler found for identifier: " + identifier);
-    }
+    return switch (identifier) {
+      case 0 -> new PingPongHandler();
+      case 1 -> new MetricDataHandler();
+      default ->
+          throw new HandlerNotFoundException("No handler found for identifier: " + identifier);
+    };
   }
 }

@@ -17,10 +17,14 @@ public final class Cache<K, V> {
   }
 
   public V get(final K key) {
-    return cacheValues.computeIfAbsent(key, loader);
+    synchronized (cacheValues) {
+      return cacheValues.computeIfAbsent(key, loader);
+    }
   }
 
   public void invalidate() {
-    cacheValues.clear();
+    synchronized (cacheValues) {
+      cacheValues.clear();
+    }
   }
 }
