@@ -17,12 +17,11 @@ public class MetricDataHandler implements RequestHandler {
       MetricDataHandler::loadMetricId);
 
   @Override
-  public void handle(final InputStreamReader inputStreamReader,
+  public void handle(final StreamReaderWrapper inputStreamReader,
       final OutputStreamWriter outputStreamWriter) {
     try {
-      final var wrapper = new StreamReaderWrapper(inputStreamReader);
-      final var gazId = wrapper.readString(3, true);
-      final var value = wrapper.readFloat();
+      final var gazId = inputStreamReader.readString(3, true);
+      final var value = inputStreamReader.readFloat();
 
       final var processors = DataProcessorProvider.getProcessors();
       Optional.ofNullable(METRIC_CACHE.get(gazId)).ifPresentOrElse(

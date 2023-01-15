@@ -8,13 +8,16 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+
+import com.hathoute.n7.utils.StreamReaderWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ServerListener {
   private static final Logger logger = LoggerFactory.getLogger(ServerListener.class);
-  private static final char[] HEADER = new char[]{'g', 'z', 's', 'h'};
+  private static final String HEADER = "gzsh";
 
   private final int port;
 
@@ -52,13 +55,13 @@ public class ServerListener {
 
   static class ThreadRunner implements Runnable {
     private final Socket socket;
-    private final InputStreamReader inputStreamReader;
+    private final StreamReaderWrapper inputStream;
     private final OutputStreamWriter outputStreamWriter;
 
     public ThreadRunner(final Socket socket) throws IOException {
       this.socket = socket;
-      inputStreamReader = new InputStreamReader(socket.getInputStream());
-      outputStreamWriter = new OutputStreamWriter(socket.getOutputStream());
+      inputStream = new StreamReaderWrapper(socket.getInputStream());
+      outputStreamWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.US_ASCII);
     }
 
     @Override
@@ -72,7 +75,7 @@ public class ServerListener {
         logger.warn("Handler not found for socket request", hnfe);
       } finally {
         try {
-          inputStreamReader.close();
+          inputStream.close();
           outputStreamWriter.close();
           socket.close();
         } catch (final IOException e) {
@@ -82,13 +85,11 @@ public class ServerListener {
     }
 
     private void checkHeader() throws HeaderMismatchException {
-      final var header = new char[4];
       try {
-        inputStreamReader.read(header, 0, 4);
-        if (!Arrays.equals(header, HEADER)) {
+        var header = inputStream.readString(4, true);
+        if (!HEADER.equals(header)) {
           throw new HeaderMismatchException(
-              "Expected " + Arrays.toString(HEADER) + " but got "
-              + Arrays.toString(header));
+              "Expected " + HEADER + " but got " + header + " instead");
         }
       } catch (final IOException e) {
         throw new HeaderMismatchException("Exception while reading input", e);
@@ -98,13 +99,13 @@ public class ServerListener {
     private void executeHandler() throws HandlerNotFoundException {
       final int handlerId;
       try {
-        handlerId = inputStreamReader.read();
+        handlerId = inputStream.readByte();
       } catch (final IOException e) {
         throw new HandlerNotFoundException("Could not read handler id");
       }
 
       final var requestHandler = RequestHandlerFactory.createFromId(handlerId);
-      requestHandler.handle(inputStreamReader, outputStreamWriter);
+      requestHandler.handle(inputStream, outputStreamWriter);
     }
   }
 }

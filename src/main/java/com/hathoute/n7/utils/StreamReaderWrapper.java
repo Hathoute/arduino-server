@@ -1,27 +1,42 @@
 package com.hathoute.n7.utils;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
-public class StreamReaderWrapper {
-  private final InputStreamReader inputStreamReader;
+public class StreamReaderWrapper implements Closeable {
+  private final InputStream inputStream;
 
-  public StreamReaderWrapper(final InputStreamReader inputStreamReader) {
-    this.inputStreamReader = inputStreamReader;
+  public StreamReaderWrapper(final InputStream inputStream) {
+    this.inputStream = inputStream;
+  }
+
+  public byte readByte() throws IOException {
+    return (byte) inputStream.read();
   }
 
   public String readString(final int length, final boolean fixedLen) throws IOException {
     final var buffer = new char[length];
-    final var readBytes = inputStreamReader.read(buffer, 0, length);
-    if (fixedLen && readBytes != length) {
-      throw new IOException("Expected " + length + " bytes, but got " + readBytes);
+    final var reader = new InputStreamReader(inputStream, StandardCharsets.US_ASCII);
+    final var readChars = reader.read(buffer, 0, length);
+    if (fixedLen && readChars != length) {
+      throw new IOException("Expected " + length + " bytes, but got " + readChars);
     }
     return new String(buffer);
   }
 
   public float readFloat() throws IOException {
+    final var buffer = new byte[4];
+    final var readBytes = inputStream.read(buffer, 0, 4);
+    if (readBytes != 4) {
+      throw new IOException("Expected 4 bytes, but got " + readBytes);
+    }
+
     // Big endian...
-    final var data = readString(4, true).getBytes();
-    return Float.intBitsToFloat(
-        (data[0] & 0xff) << 24 | (data[1] & 0xff) << 16 | (data[2] & 0xff) << 8 | (data[3] & 0xff));
+    return ByteBuffer.wrap(buffer).getFloat();
+  }
+
+  @Override
+  public void close() throws IOException {
+    inputStream.close();
   }
 }
