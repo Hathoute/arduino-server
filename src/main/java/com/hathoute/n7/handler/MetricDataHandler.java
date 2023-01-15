@@ -24,7 +24,7 @@ public class MetricDataHandler implements RequestHandler {
       final var gazId = wrapper.readString(3, true);
       final var value = wrapper.readFloat();
 
-      final var processors = DataProcessorProvider.getInstance().getProcessors();
+      final var processors = DataProcessorProvider.getProcessors();
       Optional.ofNullable(METRIC_CACHE.get(gazId)).ifPresentOrElse(
           metricId -> processors.forEach(processor -> processor.process(metricId, value)),
           () -> logger.warn("Metric gazId \"{}\" not found", gazId));

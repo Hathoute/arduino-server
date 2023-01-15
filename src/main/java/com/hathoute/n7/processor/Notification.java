@@ -1,9 +1,13 @@
 package com.hathoute.n7.processor;
 import com.hathoute.n7.model.AlertOperation;
+import com.hathoute.n7.processor.notification.MailNotification;
+import com.hathoute.n7.processor.notification.NotificationType;
 import com.hathoute.n7.utils.Cache;
 import com.hathoute.n7.utils.DatabaseManager;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +30,8 @@ public class Notification implements DataProcessor {
   private void notifyAlert(final AlertOperation operation, final float value) {
     logger.info("Alert triggered (metricId: {}, value: {}, type: {}, threshold: {})",
         operation.metricId(), value, operation.type(), operation.value());
+
+    getNotifiers().forEach(notifier -> notifier.notify(operation, value));
   }
 
   private Collection<AlertOperation> loadOperations(final int metricId) {
@@ -38,4 +44,7 @@ public class Notification implements DataProcessor {
     }
   }
 
+  private Collection<NotificationType> getNotifiers() {
+    return List.of(new MailNotification());
+  }
 }

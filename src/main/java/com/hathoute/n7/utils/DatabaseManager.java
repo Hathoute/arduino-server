@@ -2,6 +2,9 @@ package com.hathoute.n7.utils;
 import com.hathoute.n7.model.AlertOperation;
 import com.hathoute.n7.model.AlertOperationType;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.beans.PropertyVetoException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -10,7 +13,7 @@ import java.util.Optional;
 import javax.sql.DataSource;
 
 public final class DatabaseManager {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseManager.class);
   private static DatabaseManager instance;
 
   private final DataSource dataSource;
@@ -24,6 +27,8 @@ public final class DatabaseManager {
   }
 
   public static void initialize() throws PropertyVetoException, SQLException {
+    LOGGER.debug("Initializing DatabaseManager");
+
     final var host = ConfigManager.getInstance().getString("database.host") +
                      ":" + ConfigManager.getInstance().getString("database.port");
     final var user = ConfigManager.getInstance().getString("database.user");
@@ -37,6 +42,7 @@ public final class DatabaseManager {
     dataSource.setPassword(password);
 
     instance = new DatabaseManager(dataSource, databaseName);
+    LOGGER.debug("Finished initializing DatabaseManager");
   }
 
   public static DatabaseManager getInstance() {
@@ -55,6 +61,20 @@ public final class DatabaseManager {
       preparedStatement.setFloat(2, value);
       preparedStatement.executeUpdate();
     }
+  }
+
+  public String getMetricName(final int metricId) throws SQLException {
+    final var selectQuery = "SELECT name FROM %s.metrics WHERE id = ?".formatted(databaseName);
+    try (final var connection = dataSource.getConnection();
+        final var preparedStatement = connection.prepareStatement(selectQuery)) {
+      preparedStatement.setInt(1, metricId);
+      try (final var resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          return resultSet.getString("name");
+        }
+      }
+    }
+    return null;
   }
 
   public Optional<Integer> getMetricId(final String gazId) throws SQLException {

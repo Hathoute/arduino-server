@@ -18,11 +18,14 @@ public final class ConfigManager {
   }
 
   public static void initialize() throws IOException {
+    LOGGER.debug("Initializing ConfigManager");
+
     final var loader = Thread.currentThread().getContextClassLoader();
     final var properties = new Properties();
     properties.load(loader.getResourceAsStream("config.properties"));
 
     instance = new ConfigManager(properties);
+    LOGGER.debug("Finished initializing ConfigManager");
   }
 
   public static ConfigManager getInstance() {
@@ -51,6 +54,10 @@ public final class ConfigManager {
 
   public int getInt(final String property) {
     return Integer.parseInt(getString(property));
+  }
+
+  public boolean getBoolean(final String property) {
+    return Boolean.parseBoolean(getString(property));
   }
 
   private String toEnvProperty(final String property) {

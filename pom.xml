@@ -26,6 +26,7 @@
   </repositories>
 
   <dependencies>
+    <!-- DATABASE -->
     <dependency>
       <groupId>org.mariadb.jdbc</groupId>
       <artifactId>mariadb-java-client</artifactId>
@@ -36,10 +37,29 @@
       <artifactId>c3p0</artifactId>
       <version>0.9.5.5</version>
     </dependency>
+
+    <!-- LOGGING -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.4.5</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>1.4.5</version>
+    </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
+      <artifactId>slf4j-api</artifactId>
       <version>2.0.5</version>
+    </dependency>
+
+    <!-- MAIL -->
+    <dependency>
+      <groupId>javax.mail</groupId>
+      <artifactId>mail</artifactId>
+      <version>1.5.0-b01</version>
     </dependency>
   </dependencies>
 
