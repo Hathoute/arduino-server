@@ -15,10 +15,24 @@ jobs:
           java-version: '18'
           distribution: 'adopt'
       - name: Test with Maven
-        run: mvn --batch-mode --update-snapshots test
+        run: mvn --batch-mode --update-snapshots clean package
       - name: Set Release version env variable
         run: |
           echo "RELEASE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
       - name: Show Release version
         run: |
           echo "Release version: ${{ env.RELEASE_VERSION }}"
+      - name: Move build files to current directory
+        run: |
+          ls -la
+          mv target/*.jar .
+      - name: Create draft release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "v${{ env.RELEASE_VERSION }}"
+          draft: true
+          prerelease: false
+          title: "Release v${{ env.RELEASE_VERSION }}"
+          files: |
+            arduino-server-${{ env.RELEASE_VERSION }}.jar
