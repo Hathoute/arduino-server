@@ -1,0 +1,24 @@
+version: "3.7"
+services:
+  mariadb:
+    image: mariadb
+    env_file: .env
+    networks:
+      - arduino
+  gazshield:
+    image: hathoute/arduino-server:${IMAGE_TAG}
+    networks:
+      - arduino
+    ports:
+      - "0.0.0.0:8181:8181"
+    depends_on:
+      - mariadb
+    environment:
+      DATABASE_HOST: mariadb
+      DATABASE_PORT: 3306
+      DATABASE_USER: root
+      DATABASE_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      DATABASE_NAME: gazshield
+      SMTP_ENABLED: "false"
+networks:
+  arduino:

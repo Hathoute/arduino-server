@@ -35,12 +35,12 @@ jobs:
           prerelease: false
           title: "Release v${{ env.RELEASE_VERSION }}"
           files: |
-            arduino-server-${{ env.RELEASE_VERSION }}.jar
+            arduino-server-${{ env.RELEASE_VERSION }}-jar-with-dependencies.jar
       - name: Upload build files
         uses: actions/upload-artifact@v2
         with:
           name: build-files
-          path: arduino-server-${{ env.RELEASE_VERSION }}.jar
+          path: arduino-server-${{ env.RELEASE_VERSION }}-jar-with-dependencies.jar
     outputs:
       release_version: ${{ env.RELEASE_VERSION }}
 
@@ -56,13 +56,77 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: build-files
-          path: arduino-server-${{ env.RELEASE_VERSION }}.jar
+          path: arduino-server-${{ env.RELEASE_VERSION }}-jar-with-dependencies.jar
       - name: Set file to correct build directory
         run: |
-          mv arduino-server-${{ env.RELEASE_VERSION }}.jar target/
+          mv arduino-server-${{ env.RELEASE_VERSION }}-jar-with-dependencies.jar target/
       - name: Login to docker hub
         run: docker login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASSWORD}}
       - name: Build docker image
         run: docker build . -t hathoute/arduino-server:${{env.RELEASE_VERSION}} --build-arg RELEASE_VERSION=${{env.RELEASE_VERSION}}
       - name: Push to docker hub
         run: docker push hathoute/arduino-server:${{env.RELEASE_VERSION}}
+    outputs:
+      release_version: ${{ env.RELEASE_VERSION }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: docker
+    env:
+      IMAGE_VERSION: ${{needs.docker.outputs.release_version}}
+      DEPLOYMENT_DIR: ~/deployed-apps/hathoute/arduino-server
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/staging.key
+          chmod 600 ~/.ssh/staging.key
+          cat >>~/.ssh/config <<END
+          Host staging
+          HostName $SSH_HOST
+          User $SSH_USER
+          IdentityFile ~/.ssh/staging.key
+          StrictHostKeyChecking no
+          END
+          cat ~/.ssh/config
+      - uses: actions/checkout@v3
+      - name: Stop and clean previous version
+        run: |
+          ssh staging /bin/bash << EOF
+          mkdir -p $DEPLOYMENT_DIR
+          cd $DEPLOYMENT_DIR
+          docker-compose down 2>&1
+          shopt -s dotglob
+          rm -r * 2> /dev/null
+          shopt -u dotglob
+          (exit 0)
+          EOF
+      - name: Create deployment environment variables
+        run: |
+          cd .github/deployment
+          echo >> .env
+          echo MARIADB_ROOT_PASSWORD=$(echo $RANDOM | md5sum | head -c 20) >> .env
+          echo MARIADB_USER=simpleUser >> .env
+          echo MARIADB_PASSWORD=$(echo $RANDOM | md5sum | head -c 20) >> .env
+          echo IMAGE_TAG=$IMAGE_VERSION >> .env
+          cd ..
+      - name: Copy new deployment files
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          shopt -s dotglob
+          scp -i ~/.ssh/staging.key ./.github/deployment/* $SSH_USER@$SSH_HOST:$DEPLOYMENT_DIR
+          shopt -u dotglob
+      - name: Deploy new version
+        run: |
+          ssh staging /bin/bash -e << EOF
+          cd $DEPLOYMENT_DIR
+          docker image prune -af
+          docker-compose up -d
+          EOF
