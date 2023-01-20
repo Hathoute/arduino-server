@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
 jobs:
-  build:
+  java:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -36,3 +36,33 @@ jobs:
           title: "Release v${{ env.RELEASE_VERSION }}"
           files: |
             arduino-server-${{ env.RELEASE_VERSION }}.jar
+      - name: Upload build files
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-files
+          path: arduino-server-${{ env.RELEASE_VERSION }}.jar
+    outputs:
+      release_version: ${{ env.RELEASE_VERSION }}
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: java
+    env:
+      RELEASE_VERSION: ${{ needs.java.outputs.release_version }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download build files
+        uses: actions/download-artifact@v2
+        with:
+          name: build-files
+          path: arduino-server-${{ env.RELEASE_VERSION }}.jar
+      - name: Set file to correct build directory
+        run: |
+          mv arduino-server-${{ env.RELEASE_VERSION }}.jar target/
+      - name: Login to docker hub
+        run: docker login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASSWORD}}
+      - name: Build docker image
+        run: docker build . -t hathoute/arduino-server:${{env.RELEASE_VERSION}} --build-arg RELEASE_VERSION=${{env.RELEASE_VERSION}}
+      - name: Push to docker hub
+        run: docker push hathoute/arduino-server:${{env.RELEASE_VERSION}}
