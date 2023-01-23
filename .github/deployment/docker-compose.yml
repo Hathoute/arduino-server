@@ -5,6 +5,8 @@ services:
     env_file: .env
     networks:
       - arduino
+    volumes:
+      - mariadb:/var/lib/mysql
   gazshield:
     image: hathoute/arduino-server:${IMAGE_TAG}
     networks:
@@ -20,5 +22,16 @@ services:
       DATABASE_PASSWORD: ${MARIADB_ROOT_PASSWORD}
       DATABASE_NAME: gazshield
       SMTP_ENABLED: "false"
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    networks:
+      - arduino
+    ports:
+      - 8012:80
+    environment:
+      - PMA_ARBITRARY=1
 networks:
   arduino:
+volumes:
+  mariadb:
