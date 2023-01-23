@@ -78,7 +78,7 @@ public final class DatabaseManager {
   }
 
   public Optional<Integer> getMetricId(final String gazId) throws SQLException {
-    final var selectQuery = "SELECT id FROM %s.metric WHERE gazId = ?".formatted(databaseName);
+    final var selectQuery = "SELECT id FROM %s.metrics WHERE gazId = ?".formatted(databaseName);
     try (final var connection = dataSource.getConnection();
         final var preparedStatement = connection.prepareStatement(selectQuery)) {
       preparedStatement.setString(1, gazId);
@@ -92,7 +92,7 @@ public final class DatabaseManager {
   }
 
   public Collection<AlertOperation> metricOperations(final int metricId) throws SQLException {
-    final var operationsQuery = ("SELECT id, operation, value FROM %s.alert_operations "
+    final var operationsQuery = ("SELECT id, type, value FROM %s.alerts "
                                  + "WHERE metric_id = ?").formatted(databaseName);
     try (final var connection = dataSource.getConnection();
         final var preparedStatement = connection.prepareStatement(operationsQuery)) {
