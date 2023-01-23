@@ -5,8 +5,6 @@ services:
     env_file: .env
     networks:
       - arduino
-    volumes:
-      - mariadb:/var/lib/mysql
   gazshield:
     image: hathoute/arduino-server:${IMAGE_TAG}
     networks:
@@ -33,5 +31,3 @@ services:
       - PMA_ARBITRARY=1
 networks:
   arduino:
-volumes:
-  mariadb:
