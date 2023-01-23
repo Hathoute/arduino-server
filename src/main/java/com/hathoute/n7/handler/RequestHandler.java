@@ -1,10 +1,8 @@
 package com.hathoute.n7.handler;
-import com.hathoute.n7.utils.StreamReaderWrapper;
-
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import com.hathoute.n7.utils.InputStreamWrapper;
+import com.hathoute.n7.utils.OutputStreamWrapper;
 
 public interface RequestHandler {
-  void handle(final StreamReaderWrapper inputStreamReader,
-      final OutputStreamWriter outputStreamWriter);
+  void handle(final InputStreamWrapper inputStream,
+      final OutputStreamWrapper outputStream);
 }

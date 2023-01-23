@@ -1,27 +1,35 @@
 package com.hathoute.n7.utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-public class StreamReaderWrapper implements Closeable {
+public class InputStreamWrapper implements Closeable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(InputStreamWrapper.class);
+
   private final InputStream inputStream;
 
-  public StreamReaderWrapper(final InputStream inputStream) {
+  public InputStreamWrapper(final InputStream inputStream) {
     this.inputStream = inputStream;
   }
 
   public byte readByte() throws IOException {
-    return (byte) inputStream.read();
+    final var b = (byte) inputStream.read();
+    LOGGER.trace("InputStreamWrapper.readByte() -> {}", b);
+    return b;
   }
 
   public String readString(final int length, final boolean fixedLen) throws IOException {
-    final var buffer = new char[length];
-    final var reader = new InputStreamReader(inputStream, StandardCharsets.US_ASCII);
-    final var readChars = reader.read(buffer, 0, length);
+    final var buffer = new byte[length];
+    final var readChars = inputStream.read(buffer);
     if (fixedLen && readChars != length) {
       throw new IOException("Expected " + length + " bytes, but got " + readChars);
     }
-    return new String(buffer);
+    final var string = new String(buffer, StandardCharsets.US_ASCII);
+    LOGGER.trace("InputStreamWrapper.readString({}, {}) -> {}", length, fixedLen, string);
+    return string;
   }
 
   public float readFloat() throws IOException {
@@ -32,7 +40,9 @@ public class StreamReaderWrapper implements Closeable {
     }
 
     // Big endian...
-    return ByteBuffer.wrap(buffer).getFloat();
+    final var f = ByteBuffer.wrap(buffer).getFloat();
+    LOGGER.trace("InputStreamWrapper.readFloat() -> {}", f);
+    return f;
   }
 
   @Override

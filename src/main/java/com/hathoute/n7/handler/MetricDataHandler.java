@@ -2,12 +2,13 @@ package com.hathoute.n7.handler;
 import com.hathoute.n7.processor.DataProcessorProvider;
 import com.hathoute.n7.utils.Cache;
 import com.hathoute.n7.utils.DatabaseManager;
-import com.hathoute.n7.utils.StreamReaderWrapper;
+import com.hathoute.n7.utils.InputStreamWrapper;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Optional;
+
+import com.hathoute.n7.utils.OutputStreamWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,16 +18,22 @@ public class MetricDataHandler implements RequestHandler {
       MetricDataHandler::loadMetricId);
 
   @Override
-  public void handle(final StreamReaderWrapper inputStreamReader,
-      final OutputStreamWriter outputStreamWriter) {
+  public void handle(final InputStreamWrapper inputStream,
+      final OutputStreamWrapper outputStream) {
+    logger.trace("MetricDataHandler.handle(inputStream, outputStream)");
+
     try {
-      final var gazId = inputStreamReader.readString(3, true);
-      final var value = inputStreamReader.readFloat();
+      final var gazId = inputStream.readString(3, true);
+      logger.trace("gazId: {}", gazId);
+      final var value = inputStream.readFloat();
+      logger.trace("value: {}", value);
 
       final var processors = DataProcessorProvider.getProcessors();
       Optional.ofNullable(METRIC_CACHE.get(gazId)).ifPresentOrElse(
           metricId -> processors.forEach(processor -> processor.process(metricId, value)),
           () -> logger.warn("Metric gazId \"{}\" not found", gazId));
+
+      outputStream.writeString("OK", StandardCharsets.US_ASCII);
     } catch (final IOException e) {
       logger.warn("Error while handling request", e);
     }

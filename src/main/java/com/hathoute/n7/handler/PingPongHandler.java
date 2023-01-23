@@ -1,9 +1,9 @@
 package com.hathoute.n7.handler;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 
-import com.hathoute.n7.utils.StreamReaderWrapper;
+import com.hathoute.n7.utils.InputStreamWrapper;
+import com.hathoute.n7.utils.OutputStreamWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,10 +11,12 @@ public class PingPongHandler implements RequestHandler {
   private static final Logger logger = LoggerFactory.getLogger(PingPongHandler.class);
 
   @Override
-  public void handle(final StreamReaderWrapper inputStreamReader,
-      final OutputStreamWriter outputStreamWriter) {
+  public void handle(final InputStreamWrapper inputStream,
+      final OutputStreamWrapper outputStream) {
+    logger.trace("PingPongHandler.handle(inputStream, outputStream)");
+
     try {
-      outputStreamWriter.write("OK");
+      outputStream.writeString("OK", StandardCharsets.US_ASCII);
     } catch (final IOException e) {
       logger.warn("Error while handling request", e);
     }
