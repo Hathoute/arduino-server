@@ -100,7 +100,7 @@ public final class DatabaseManager {
       try (final var resultSet = preparedStatement.executeQuery()) {
         final var list = new ArrayList<AlertOperation>();
         while (resultSet.next()) {
-          final var operation = AlertOperationType.valueOf(resultSet.getString("operation"));
+          final var operation = AlertOperationType.valueOf(resultSet.getString("type"));
           final var value = resultSet.getFloat("value");
           list.add(new AlertOperation(metricId, operation, value));
         }
