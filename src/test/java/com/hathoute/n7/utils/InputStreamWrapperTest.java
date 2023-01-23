@@ -5,12 +5,14 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
-class StreamReaderWrapperTest {
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+class InputStreamWrapperTest {
 
   private static final String TEST_STRING = "test string";
   private static final float TEST_FLOAT = 1.875f;
@@ -30,7 +32,7 @@ class StreamReaderWrapperTest {
 
   @Test
   void should_read_string_when_enough_data_in_buffer() throws Exception {
-    final var streamReaderWrapper = new StreamReaderWrapper(getStringInputStreamReader());
+    final var streamReaderWrapper = new InputStreamWrapper(getStringInputStreamReader());
 
     final var result = streamReaderWrapper.readString(TEST_STRING.length(), true);
 
@@ -39,7 +41,7 @@ class StreamReaderWrapperTest {
 
   @Test
   void should_throw_exception_when_not_enough_data_for_string() {
-    final var streamReaderWrapper = new StreamReaderWrapper(getStringInputStreamReader());
+    final var streamReaderWrapper = new InputStreamWrapper(getStringInputStreamReader());
     var testLength = TEST_STRING.length() + 1;
 
     final var exception = assertThrows(
@@ -52,7 +54,7 @@ class StreamReaderWrapperTest {
 
   @Test
   void should_read_string_when_not_fixed_length_and_not_enough_data_in_buffer() throws Exception {
-    final var streamReaderWrapper = new StreamReaderWrapper(getStringInputStreamReader());
+    final var streamReaderWrapper = new InputStreamWrapper(getStringInputStreamReader());
 
     final var result = streamReaderWrapper.readString(TEST_STRING.length(), false);
 
@@ -61,7 +63,7 @@ class StreamReaderWrapperTest {
 
   @Test
   void should_read_float() throws Exception {
-    final var streamReaderWrapper = new StreamReaderWrapper(getFloatInputStreamReader());
+    final var streamReaderWrapper = new InputStreamWrapper(getFloatInputStreamReader());
 
     final var result = streamReaderWrapper.readFloat();
 
@@ -73,7 +75,7 @@ class StreamReaderWrapperTest {
     var inputStream = getFloatInputStreamReader();
     // Read one byte so that we have only 3 bytes left in the buffer
     inputStream.read();
-    final var streamReaderWrapper = new StreamReaderWrapper(inputStream);
+    final var streamReaderWrapper = new InputStreamWrapper(inputStream);
 
     final var exception = assertThrows(
       IOException.class,
@@ -81,6 +83,26 @@ class StreamReaderWrapperTest {
     );
 
     assertEquals(exception.getMessage(), "Expected 4 bytes, but got 3");
+  }
+
+  @Test
+  void should_not_consume_more_bytes_than_needed() throws IOException {
+    final var streamReaderWrapper = new InputStreamWrapper(getStringInputStreamReader());
+
+    final var string1 = streamReaderWrapper.readString(TEST_STRING.length() - 2, true);
+    final var string2 = streamReaderWrapper.readString(2, true);
+
+    assertEquals(TEST_STRING, string1 + string2);
+  }
+
+  @Test
+  void should_close_input_stream() throws IOException {
+    final var inputStream = mock(InputStream.class);
+    final var streamReaderWrapper = new InputStreamWrapper(inputStream);
+
+    streamReaderWrapper.close();
+
+    verify(inputStream).close();
   }
 
   public static byte [] float2ByteArray (float value) {

@@ -1,20 +1,21 @@
 package com.hathoute.n7;
 
-import com.hathoute.n7.utils.StreamReaderWrapper;
+import com.hathoute.n7.utils.InputStreamWrapper;
 
-import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 public class ArduinoClient {
-    private static final String HOST = "arduino.staging.hathoute.com";
+    private static final String HOST = "localhost";
     private static final int PORT = 8181;
 
 
     public static void main(String[] args) throws Exception {
         var socket = new Socket(HOST, PORT);
         var oos = socket.getOutputStream();
-        var ois = new StreamReaderWrapper(socket.getInputStream());
+        var ois = new InputStreamWrapper(socket.getInputStream());
+
+        System.out.println("Just connected to " + socket.getRemoteSocketAddress());
 
         String msg = "gzsh";
         oos.write(msg.getBytes(StandardCharsets.US_ASCII));
